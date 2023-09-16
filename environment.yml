@@ -1,0 +1,24 @@
+name: hebe
+channels: 
+  - anaconda
+  - pytorch
+dependencies:
+  - python == 3.10.13
+  - numpy
+  - scipy
+  - tqdm
+  - pandas
+  - scikit-learn 
+  - jupyter
+  - pytorch
+  - torchvision
+  - torchaudio
+  - tensorflow
+  - seaborn
+  - dash
+  - plotly
+  - pip:
+      - spacy
+      - black
+      - matplotlib
+
