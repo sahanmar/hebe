@@ -15,7 +15,7 @@ def create_moons_data() -> (
     X, Y = make_moons(noise=0.2, random_state=0, n_samples=1000)
     X = scale(X)
 
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.9)
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.95)
 
     X_train = torch.tensor(X_train, dtype=torch.float32)
     Y_train = torch.tensor(Y_train, dtype=torch.float32).view(-1, 1)
@@ -44,18 +44,22 @@ def extend_moons_training_data(
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     The function extends moon training data given test_to_train_data_indices.
-    x_train and y_train get the labled data from x_test and y_test based on
-    test_to_train_data_indices
+    x_train and y_train get the labeled data from x_test and y_test based on
+    test_to_train_data_indices.
     """
-    all_indices = torch.arange(x_test.size()[0])
-    complement_indices = torch.masked_select(
-        all_indices,
-        torch.logical_not(test_to_train_data_indices.unsqueeze(1) == all_indices),
+    # Get the indices to transfer from test to train
+    train_indices = test_to_train_data_indices.cpu().numpy()
+
+    # Update x_train and y_train in-place without allocating new memory
+    x_train = torch.cat((x_train, x_test[train_indices]), dim=0)
+    y_train = torch.cat((y_train, y_test[train_indices]), dim=0)
+
+    # Get the complement indices for x_test and y_test
+    complement_indices = torch.tensor(
+        list(set(range(x_test.size(0))) - set(train_indices))
     )
 
-    x_train = torch.cat((x_train, x_test[test_to_train_data_indices]), dim=0)
-    y_train = torch.cat((y_train, y_test[test_to_train_data_indices]), dim=0)
-
+    # Create new tensors for x_test and y_test without the transferred data
     x_test = x_test[complement_indices]
     y_test = y_test[complement_indices]
 

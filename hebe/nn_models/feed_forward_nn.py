@@ -4,30 +4,21 @@ import torch.nn as nn
 
 from torch.utils.data import DataLoader
 from typing import Callable, Optional
-from hebe.config.config import (
+from hebe.config import (
     NNParametersConfig,
     ActiveLearningConfig,
     AcquisitionFunctions,
+    MCDropoutConfig,
+)
+from hebe.acquisitions_functions import (
+    random_indices_sampling,
+    maximal_entropy_sampling,
 )
 
-
-def random_indices_sampling(
-    data: torch.Tensor, num_of_instances_to_sample: int, seed=None
-) -> torch.Tensor:
-    if seed is not None:
-        torch.manual_seed(seed)
-
-    if num_of_instances_to_sample > data.size(0):
-        raise ValueError(
-            "Number of instances to sample (n) cannot be greater than the size of the input tensor (K)."
-        )
-
-    indices = torch.randperm(data.size(0))[:num_of_instances_to_sample]
-
-    return indices
-
-
-ACQUISITION_FUNCTIONS_MAP = {AcquisitionFunctions.random: random_indices_sampling}
+ACQUISITION_FUNCTIONS_MAP = {
+    AcquisitionFunctions.random: random_indices_sampling,
+    AcquisitionFunctions.entropy: maximal_entropy_sampling,
+}
 
 
 class FeedForwardNN(nn.Module):
@@ -59,12 +50,8 @@ class FeedForwardNN(nn.Module):
 class Classifier:
     def __init__(
         self,
-        # TODO Generalize it into config
         nn_config: NNParametersConfig,
-        active_learning_config: ActiveLearningConfig
-        # acquisition_funtion: Callable[
-        #     [torch.Tensor], torch.Tensor
-        # ] = random_indices_sampling,
+        active_learning_config: ActiveLearningConfig,
     ):
         self.input_size = nn_config.input_size
         self.hidden_size = nn_config.hidden_size
@@ -129,9 +116,17 @@ class Classifier:
         """
         Returns sampled instances indices in the original dataset
         """
+
+        if self.acquisition_funtion is AcquisitionFunctions.random:
+            predictions = input_data
+        else:
+            predictions = self.predict(input_data)
+
         if num_of_instances_to_sample is None:
-            return self.acquisition_funtion(input_data, self.num_of_instances_to_sample)
-        return self.acquisition_funtion(input_data, num_of_instances_to_sample)
+            return self.acquisition_funtion(
+                predictions, self.num_of_instances_to_sample
+            )
+        return self.acquisition_funtion(predictions, num_of_instances_to_sample)
 
     def reset_cold_start(self) -> None:
         """
@@ -145,4 +140,55 @@ class Classifier:
         )
         self.optimizer: torch.optim.Adam = torch.optim.Adam(
             self.model.parameters(), self.learning_rate
+        )
+
+
+class MCDropoutClassifier(Classifier):
+    def __init__(
+        self,
+        nn_config: NNParametersConfig,
+        active_learning_config: ActiveLearningConfig,
+        mc_dropout_config: MCDropoutConfig,
+    ):
+        super().__init__(nn_config, active_learning_config)
+
+        self.mc_dropout_config = mc_dropout_config
+
+    def predict(
+        self, input_data: torch.Tensor, data_sampling: bool = False
+    ) -> torch.Tensor:
+        # Set the model to evaluation mode (important for dropout)
+        if not data_sampling:
+            self.model.eval()
+        else:
+            self.model.train()
+
+        # Forward pass to get predictions
+        with torch.no_grad():
+            predictions = self.model(input_data)
+
+        return predictions
+
+    def sample_indices_from_unlabeled_data(
+        self, input_data: torch.Tensor, num_of_instances_to_sample: Optional[int] = None
+    ) -> torch.Tensor:
+        """
+        Returns sampled instances indices in the original dataset
+        """
+
+        if self.acquisition_funtion is AcquisitionFunctions.random:
+            predictions = input_data
+        else:
+            predictions = torch.stack(
+                [
+                    self.predict(input_data, data_sampling=True)
+                    for i in range(self.mc_dropout_config.number_of_samples)
+                ],
+                dim=1,
+            )
+            mean_predictions = torch.mean(predictions, dim=1)
+            predictions = mean_predictions / mean_predictions.sum(dim=1, keepdim=True)
+
+        return self.acquisition_funtion(
+            predictions, num_of_instances_to_sample or self.num_of_instances_to_sample
         )
