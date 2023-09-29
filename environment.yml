@@ -23,4 +23,5 @@ dependencies:
       - matplotlib
       - mypy
       - flake8
+      - isort
 

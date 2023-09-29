@@ -1,19 +1,14 @@
+from typing import Optional
+
 import numpy as np
 import torch
 import torch.nn as nn
-
 from torch.utils.data import DataLoader
-from typing import Optional
-from hebe.config import (
-    NNParametersConfig,
-    ActiveLearningConfig,
-    AcquisitionFunctions,
-    MCDropoutConfig,
-)
-from hebe.acquisitions_functions import (
-    random_indices_sampling,
-    maximal_entropy_sampling,
-)
+
+from hebe.acquisitions_functions import (maximal_entropy_sampling,
+                                         random_indices_sampling)
+from hebe.config import (AcquisitionFunctions, ActiveLearningConfig,
+                         MCDropoutConfig, NNParametersConfig)
 
 ACQUISITION_FUNCTIONS_MAP = {
     AcquisitionFunctions.random: random_indices_sampling,

@@ -1,12 +1,12 @@
-import torch
-import seaborn as sns
+from typing import Tuple
+
 import matplotlib.pyplot as plt
 import numpy as np
-
-from typing import Tuple
+import seaborn as sns
+import torch
 from sklearn.datasets import make_moons
-from sklearn.preprocessing import scale
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import scale
 
 
 def create_moons_data() -> (

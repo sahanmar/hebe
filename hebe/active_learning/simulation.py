@@ -1,19 +1,16 @@
-import torch
-import numpy as np
-import matplotlib.pyplot as plt
 import json
-from hebe.config import SimulationConfig
-from hebe.nn_models import Classifier
-from torch.utils.data import TensorDataset, DataLoader
-from hebe.moons_utils import (
-    extend_moons_training_data,
-    plot_moons_uncertainty_grid,
-    create_moons_data,
-    simulate_grid,
-)
-from hebe.metrics import calculate_roc_auc
 from datetime import datetime
-from hebe.config import TrainingType
+
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from torch.utils.data import DataLoader, TensorDataset
+
+from hebe.config import SimulationConfig, TrainingType
+from hebe.metrics import calculate_roc_auc
+from hebe.moons_utils import (create_moons_data, extend_moons_training_data,
+                              plot_moons_uncertainty_grid, simulate_grid)
+from hebe.nn_models import Classifier
 from paths import DATA
 
 
