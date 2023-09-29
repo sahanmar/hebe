@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 
 from torch.utils.data import DataLoader
-from typing import Callable, Optional
+from typing import Optional
 from hebe.config import (
     NNParametersConfig,
     ActiveLearningConfig,
@@ -23,7 +23,11 @@ ACQUISITION_FUNCTIONS_MAP = {
 
 class FeedForwardNN(nn.Module):
     def __init__(
-        self, input_size: int, hidden_size: int, num_classes: int, dropout: int
+        self,
+        input_size: int,
+        hidden_size: int,
+        num_classes: int,
+        dropout: float,
     ):
         super(FeedForwardNN, self).__init__()
 
@@ -34,7 +38,7 @@ class FeedForwardNN(nn.Module):
 
         self.build_the_model()
 
-    def build_the_model(self) -> "FeedForwardNN":
+    def build_the_model(self) -> None:
         self.hidden = nn.Linear(self.input_size, self.hidden_size)
         self.output = nn.Linear(self.hidden_size, self.num_classes)
         self.sigmoid = nn.Sigmoid()
@@ -62,9 +66,9 @@ class Classifier:
         self.num_of_instances_to_sample = (
             active_learning_config.num_of_instances_to_sample
         )
-        self.acquisition_funtion: Callable[
-            [torch.Tensor], torch.Tensor
-        ] = ACQUISITION_FUNCTIONS_MAP[active_learning_config.acquisition_function]
+        self.acquisition_funtion = ACQUISITION_FUNCTIONS_MAP[
+            active_learning_config.acquisition_function
+        ]
 
         self.model: FeedForwardNN = FeedForwardNN(
             self.input_size,
@@ -72,7 +76,7 @@ class Classifier:
             self.num_classes,
             self.dropout_ratio,
         )
-        self.criterion: nn.BCELoss() = nn.BCELoss()
+        self.criterion: nn.BCELoss = nn.BCELoss()
         self.optimizer: torch.optim.Adam = torch.optim.Adam(
             self.model.parameters(), self.learning_rate
         )
@@ -111,7 +115,9 @@ class Classifier:
         return predictions
 
     def sample_indices_from_unlabeled_data(
-        self, input_data: torch.Tensor, num_of_instances_to_sample: Optional[int] = None
+        self,
+        input_data: torch.Tensor,
+        num_of_instances_to_sample: Optional[int] = None,
     ) -> torch.Tensor:
         """
         Returns sampled instances indices in the original dataset
@@ -126,19 +132,24 @@ class Classifier:
             return self.acquisition_funtion(
                 predictions, self.num_of_instances_to_sample
             )
-        return self.acquisition_funtion(predictions, num_of_instances_to_sample)
+        return self.acquisition_funtion(
+            predictions, num_of_instances_to_sample
+        )
 
     def reset_cold_start(self) -> None:
         """
         Parameters random reinitialization.
         """
-        self.model: FeedForwardNN = FeedForwardNN(
+        del self.model
+        del self.optimizer
+
+        self.model: FeedForwardNN = FeedForwardNN(  # type: ignore
             self.input_size,
             self.hidden_size,
             self.num_classes,
             self.dropout_ratio,
         )
-        self.optimizer: torch.optim.Adam = torch.optim.Adam(
+        self.optimizer: torch.optim.Adam = torch.optim.Adam(  # type: ignore
             self.model.parameters(), self.learning_rate
         )
 
@@ -170,7 +181,9 @@ class MCDropoutClassifier(Classifier):
         return predictions
 
     def sample_indices_from_unlabeled_data(
-        self, input_data: torch.Tensor, num_of_instances_to_sample: Optional[int] = None
+        self,
+        input_data: torch.Tensor,
+        num_of_instances_to_sample: Optional[int] = None,
     ) -> torch.Tensor:
         """
         Returns sampled instances indices in the original dataset
@@ -187,8 +200,11 @@ class MCDropoutClassifier(Classifier):
                 dim=1,
             )
             mean_predictions = torch.mean(predictions, dim=1)
-            predictions = mean_predictions / mean_predictions.sum(dim=1, keepdim=True)
+            predictions = mean_predictions / mean_predictions.sum(
+                dim=1, keepdim=True
+            )
 
         return self.acquisition_funtion(
-            predictions, num_of_instances_to_sample or self.num_of_instances_to_sample
+            predictions,
+            num_of_instances_to_sample or self.num_of_instances_to_sample,
         )

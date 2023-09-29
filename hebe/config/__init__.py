@@ -1,3 +1,4 @@
+# flake8: noqa
 from hebe.config.config import (
     Config,
     SimulationConfig,

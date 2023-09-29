@@ -27,7 +27,7 @@ def create_moons_data() -> (
 
 
 def simulate_grid() -> Tuple[np.ndarray, torch.Tensor]:
-    grid = np.mgrid[-3:3:100j, -3:3:100j]
+    grid = np.mgrid[-3:3:100j, -3:3:100j]  # type: ignore
     # Reshape the grid into a list of (x, y) pairs
     points = grid.reshape(2, -1).transpose()
 
@@ -68,7 +68,7 @@ def extend_moons_training_data(
 
 def plot_moons_uncertainty_grid(
     predictions: torch.Tensor,
-    grid: torch.Tensor,
+    grid: np.ndarray,
     x_train: torch.Tensor,
     y_train: torch.Tensor,
     x_test: torch.Tensor,
@@ -81,7 +81,9 @@ def plot_moons_uncertainty_grid(
     fig, ax = plt.subplots(figsize=(16, 9))
 
     # Plot the uncertainty grid
-    contour = ax.contourf(grid[1], grid[0], predictions.reshape(100, 100).T, cmap=cmap)
+    contour = ax.contourf(
+        grid[1], grid[0], predictions.reshape(100, 100).T, cmap=cmap
+    )
 
     # Cat instances and labels
     x = torch.cat((x_train, x_test), dim=0)
@@ -98,6 +100,8 @@ def plot_moons_uncertainty_grid(
 
     # Set axis limits and labels
     ax.set(xlim=(-3, 3), ylim=(-3, 3), xlabel="X", ylabel="Y")
-    cbar.ax.set_ylabel("Posterior predictive mean probability of class label = 0")
+    cbar.ax.set_ylabel(
+        "Posterior predictive mean probability of class label = 0"
+    )
 
     plt.show()

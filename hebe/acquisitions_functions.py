@@ -1,15 +1,20 @@
 import torch
 
 
-def data_sanity_check(num_of_instances_to_sample: int, data: torch.Tensor) -> None:
+def data_sanity_check(
+    num_of_instances_to_sample: int, data: torch.Tensor
+) -> None:
     if num_of_instances_to_sample > data.size(0):
         raise ValueError(
-            "Number of instances to sample (n) cannot be greater than the size of the input tensor (K)."
+            "Number of instances to sample (n) cannot be greater"
+            "than the size of the input tensor (K)."
         )
 
 
 def random_indices_sampling(
-    data: torch.Tensor, num_of_instances_to_sample: int, seed=None
+    data: torch.Tensor,
+    num_of_instances_to_sample: int,
+    seed: int | None = None,
 ) -> torch.Tensor:
     if seed is not None:
         torch.manual_seed(seed)
@@ -22,7 +27,9 @@ def random_indices_sampling(
 
 
 def maximal_entropy_sampling(
-    data: torch.Tensor, num_of_instances_to_sample: int, seed=None
+    data: torch.Tensor,
+    num_of_instances_to_sample: int,
+    seed: int | None = None,
 ) -> torch.Tensor:
     if seed is not None:
         torch.manual_seed(seed)

@@ -96,7 +96,10 @@ def active_learning_moon_simulation(
             if simulation_config.training_type is TrainingType.cold_start:
                 model.reset_cold_start()
 
-            print(f"Iteration {iter} if finished with AUC = {round(auc,3)} ...", "\n")
+            print(
+                f"Iteration {iter} if finished with AUC = {round(auc,3)} ...",
+                "\n",
+            )
 
         auc_history.append(loop_auc_values)
         model.reset_cold_start()
