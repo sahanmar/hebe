@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
+from typing import Tuple
 
 
 class AcquisitionFunctions(Enum):
@@ -15,7 +16,15 @@ class TrainingType(Enum):
 
 @dataclass(frozen=True)
 class MCDropoutConfig:
-    number_of_samples = 10
+    number_of_samples: int = 10
+
+
+@dataclass
+class VadamConfig:
+    number_of_samples: int = 10
+    optimizer_switch_ratio: float = 0.1
+    training_set_size: int = 50
+    betas: Tuple[float, float] = (0.9, 0.999)
 
 
 @dataclass(frozen=True)
@@ -36,7 +45,7 @@ class ActiveLearningConfig:
 @dataclass(frozen=True)
 class SimulationConfig:
     loops: int = 2  # num of loops for statistical validation
-    iterations: int = 5  # active learning iterations
+    iterations: int = 15  # active learning iterations
     training_type: TrainingType = TrainingType.hot_start
 
 
@@ -46,3 +55,4 @@ class Config:
     active_learning: ActiveLearningConfig = ActiveLearningConfig()
     simulation: SimulationConfig = SimulationConfig()
     mc_dropout: MCDropoutConfig = MCDropoutConfig()
+    vadam: VadamConfig = VadamConfig()
