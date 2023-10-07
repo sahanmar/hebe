@@ -6,10 +6,15 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 
-from hebe.config import SimulationConfig, TrainingType
+from hebe.config import SimulationConfig, TrainingType, Dateset
 from hebe.metrics import calculate_roc_auc
-from hebe.moons_utils import (create_moons_data, extend_moons_training_data,
-                              plot_moons_uncertainty_grid, simulate_grid)
+from hebe.datasets_utils import (
+    create_moons_data,
+    extend_training_data,
+    plot_data_uncertainty_grid,
+    simulate_grid,
+    create_chess_deck_data,
+)
 from hebe.nn_models import Classifier
 from paths import DATA
 
@@ -61,11 +66,15 @@ def active_learning_moon_simulation(
     simulation_config: SimulationConfig,
     model: Classifier,
 ) -> None:
-    x_train, y_train, x_test, y_test = create_moons_data()
-    grid, nn_input_grid = simulate_grid()
     auc_history = []
 
     for loop in range(simulation_config.loops):
+        x_train, y_train, x_test, y_test = (
+            create_moons_data()
+            if simulation_config.data == Dateset.moons
+            else create_chess_deck_data()
+        )
+        grid, nn_input_grid = simulate_grid()
         loop_auc_values = []
         for iter in range(simulation_config.iterations):
             # create training data structure
@@ -77,12 +86,12 @@ def active_learning_moon_simulation(
             auc = calculate_roc_auc(test_predictions, y_test)
             loop_auc_values.append(auc)
             # visualise
-            plot_moons_uncertainty_grid(
+            plot_data_uncertainty_grid(
                 predictions, grid, x_train, y_train, x_test, y_test
             )
             # perform new data sampling with a training data change
             samped_indices = model.sample_indices_from_unlabeled_data(x_test)
-            (x_train, y_train, x_test, y_test) = extend_moons_training_data(
+            (x_train, y_train, x_test, y_test) = extend_training_data(
                 x_train,
                 y_train,
                 x_test,

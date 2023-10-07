@@ -29,7 +29,10 @@ class VadamClassifier(Classifier):
             self.vadam_config.training_set_size,
             self.learning_rate,
             betas=self.vadam_config.betas,
+            std=self.vadam_config.std,
         )
+
+        del self.optimizer
 
     def train(self, dataloader: DataLoader) -> None:
         avg_loss_per_epoch: list[float] = []
@@ -113,4 +116,5 @@ class VadamClassifier(Classifier):
             else self.vadam_config.training_set_size,
             self.learning_rate,
             betas=self.vadam_config.betas,
+            std=self.vadam_config.std,
         )

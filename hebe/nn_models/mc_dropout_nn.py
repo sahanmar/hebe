@@ -1,7 +1,11 @@
 import torch
 
-from hebe.config import (AcquisitionFunctions, ActiveLearningConfig,
-                         MCDropoutConfig, NNParametersConfig)
+from hebe.config import (
+    AcquisitionFunctions,
+    ActiveLearningConfig,
+    MCDropoutConfig,
+    NNParametersConfig,
+)
 from hebe.nn_models.feed_forward_nn import Classifier
 
 
@@ -16,11 +20,11 @@ class MCDropoutClassifier(Classifier):
 
         self.mc_dropout_config = mc_dropout_config
 
-    def predict(
-        self, input_data: torch.Tensor, data_sampling: bool = False
+    def predict_inner(
+        self, input_data: torch.Tensor, use_uncertainty_in_prediction: bool
     ) -> torch.Tensor:
         # Set the model to evaluation mode (important for dropout)
-        if not data_sampling:
+        if not use_uncertainty_in_prediction:
             self.model.eval()
         else:
             self.model.train()
@@ -30,6 +34,11 @@ class MCDropoutClassifier(Classifier):
             predictions = self.model(input_data)
 
         return predictions
+
+    def predict(self, input_data: torch.Tensor) -> torch.Tensor:
+        return self.predict_inner(
+            input_data, self.mc_dropout_config.use_uncertainty_in_prediction
+        )
 
     def sample_indices_from_unlabeled_data(
         self,
@@ -45,15 +54,13 @@ class MCDropoutClassifier(Classifier):
         else:
             predictions = torch.stack(
                 [
-                    self.predict(input_data, data_sampling=True)
+                    self.predict_inner(input_data, True)
                     for i in range(self.mc_dropout_config.number_of_samples)
                 ],
                 dim=1,
             )
             mean_predictions = torch.mean(predictions, dim=1)
-            predictions = mean_predictions / mean_predictions.sum(
-                dim=1, keepdim=True
-            )
+            predictions = mean_predictions / mean_predictions.sum(dim=1, keepdim=True)
 
         return self.acquisition_funtion(
             predictions,
