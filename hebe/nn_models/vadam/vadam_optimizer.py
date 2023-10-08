@@ -799,7 +799,5 @@ class VOGN(Optimizer):
         sigma = 1.0 / torch.sqrt(prec)
         mu0 = 0.0
         sigma0 = 1.0 / math.sqrt(prec0)
-        kl = self._kl_gaussian(
-            p_mu=mu, p_sigma=sigma, q_mu=mu0, q_sigma=sigma0
-        )
+        kl = self._kl_gaussian(p_mu=mu, p_sigma=sigma, q_mu=mu0, q_sigma=sigma0)
         return kl

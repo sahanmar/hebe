@@ -34,9 +34,7 @@ def create_chess_deck_data() -> (
     cells_seed = list(range(gird_size**2))
     instances_per_cell = 1000 // gird_size**2
     cell_size = 6 / gird_size
-
-    noise = 0.2
-    var = (cell_size / 5) ** 2  # * (1 + noise)
+    var = (cell_size / 5) ** 2
 
     # create the dataset
     grid: list[list[np.ndarray]] = []
@@ -145,7 +143,9 @@ def plot_data_uncertainty_grid(
     fig, ax = plt.subplots(figsize=(16, 9))
 
     # Plot the uncertainty grid
-    contour = ax.contourf(grid[1], grid[0], predictions.reshape(100, 100).T, cmap=cmap)
+    contour = ax.contourf(
+        grid[1], grid[0], predictions.reshape(100, 100).T, cmap=cmap
+    )
 
     # Cat instances and labels
     x = torch.cat((x_train, x_test), dim=0)
@@ -162,6 +162,8 @@ def plot_data_uncertainty_grid(
 
     # Set axis limits and labels
     ax.set(xlim=(-3, 3), ylim=(-3, 3), xlabel="X", ylabel="Y")
-    cbar.ax.set_ylabel("Posterior predictive mean probability of class label = 0")
+    cbar.ax.set_ylabel(
+        "Posterior predictive mean probability of class label = 0"
+    )
 
     plt.show()

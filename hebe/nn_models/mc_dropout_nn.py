@@ -60,7 +60,9 @@ class MCDropoutClassifier(Classifier):
                 dim=1,
             )
             mean_predictions = torch.mean(predictions, dim=1)
-            predictions = mean_predictions / mean_predictions.sum(dim=1, keepdim=True)
+            predictions = mean_predictions / mean_predictions.sum(
+                dim=1, keepdim=True
+            )
 
         return self.acquisition_funtion(
             predictions,
