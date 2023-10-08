@@ -26,6 +26,68 @@ def create_moons_data() -> (
     return X_train, Y_train, X_test, Y_test
 
 
+def create_chess_deck_data() -> (
+    Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+):
+    # config inits
+    gird_size = 4
+    cells_seed = list(range(gird_size**2))
+    instances_per_cell = 1000 // gird_size**2
+    cell_size = 6 / gird_size
+    var = (cell_size / 5) ** 2
+
+    # create the dataset
+    grid: list[list[np.ndarray]] = []
+    labels: list[list[np.ndarray]] = []
+    counter = 0
+
+    x_axis, y_axis = -2.2, -2.2
+    for i in range(gird_size):
+        flag = i % 2
+        local_values: list[np.ndarray] = []
+        local_labels: list[np.ndarray] = []
+        y_axis = -2.2
+        for j in range(gird_size):
+            np.random.seed(cells_seed[counter])
+            local_values.append(
+                np.random.multivariate_normal(
+                    mean=[x_axis, y_axis],
+                    cov=[[var, 0], [0, var]],
+                    size=instances_per_cell,
+                )
+            )
+            local_labels.append(
+                np.zeros((instances_per_cell, 1))
+                if (j + flag) % 2 == 0
+                else np.ones((instances_per_cell, 1))
+            )
+            y_axis += cell_size
+            counter += 1
+        x_axis += cell_size
+        grid.append(local_values)
+        labels.append(local_labels)
+
+    X = np.concatenate(
+        [np.concatenate(inner_list, axis=0) for inner_list in grid],
+        axis=0,
+    )
+
+    Y = np.concatenate(
+        [np.concatenate(inner_list, axis=0) for inner_list in labels],
+        axis=0,
+    )
+
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.95)
+
+    X_train = torch.tensor(X_train, dtype=torch.float32)
+    Y_train = torch.tensor(Y_train, dtype=torch.float32).view(-1, 1)
+
+    X_test = torch.tensor(X_test, dtype=torch.float32)
+    Y_test = torch.tensor(Y_test, dtype=torch.float32).view(-1, 1)
+
+    return X_train, Y_train, X_test, Y_test
+
+
 def simulate_grid() -> Tuple[np.ndarray, torch.Tensor]:
     grid = np.mgrid[-3:3:100j, -3:3:100j]  # type: ignore
     # Reshape the grid into a list of (x, y) pairs
@@ -35,7 +97,7 @@ def simulate_grid() -> Tuple[np.ndarray, torch.Tensor]:
     return grid, torch.tensor(points, dtype=torch.float32)
 
 
-def extend_moons_training_data(
+def extend_training_data(
     x_train: torch.Tensor,
     y_train: torch.Tensor,
     x_test: torch.Tensor,
@@ -43,7 +105,7 @@ def extend_moons_training_data(
     test_to_train_data_indices: torch.Tensor,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
-    The function extends moon training data given test_to_train_data_indices.
+    The function extends training data given test_to_train_data_indices.
     x_train and y_train get the labeled data from x_test and y_test based on
     test_to_train_data_indices.
     """
@@ -66,7 +128,7 @@ def extend_moons_training_data(
     return x_train, y_train, x_test, y_test
 
 
-def plot_moons_uncertainty_grid(
+def plot_data_uncertainty_grid(
     predictions: torch.Tensor,
     grid: np.ndarray,
     x_train: torch.Tensor,

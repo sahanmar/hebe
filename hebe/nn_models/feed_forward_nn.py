@@ -132,9 +132,7 @@ class Classifier:
             return self.acquisition_funtion(
                 predictions, self.num_of_instances_to_sample
             )
-        return self.acquisition_funtion(
-            predictions, num_of_instances_to_sample
-        )
+        return self.acquisition_funtion(predictions, num_of_instances_to_sample)
 
     def reset_cold_start(self) -> None:
         """
@@ -149,6 +147,6 @@ class Classifier:
             self.num_classes,
             self.dropout_ratio,
         )
-        self.optimizer: torch.optim.Optimizer = (  # type: ignore
-            torch.optim.Adam(self.model.parameters(), self.learning_rate)
+        self.optimizer: torch.optim.Optimizer = torch.optim.Adam(  # type: ignore
+            self.model.parameters(), self.learning_rate
         )

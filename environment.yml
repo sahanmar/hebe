@@ -22,6 +22,6 @@ dependencies:
       - black
       - matplotlib
       - mypy
-      - flake8
+      - pyproject-flake8==5.0.4
       - isort
 
