@@ -36,7 +36,10 @@ def maximal_entropy_sampling(
 
     data_sanity_check(num_of_instances_to_sample, data)
 
-    probabilities = torch.cat((data, 1 - data), dim=1)
+    if data.size()[1] == 1:
+        probabilities = torch.cat((data, 1 - data), dim=1)
+    else:
+        probabilities = data
 
     # Calculate entropy for each data point
     entropy = -torch.sum(probabilities * torch.log(probabilities), dim=1)
