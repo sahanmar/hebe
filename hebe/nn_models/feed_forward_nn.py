@@ -50,6 +50,9 @@ class FeedForwardNN(nn.Module):
         second_layer = self.sigmoid(self.output(first_layer))
         return second_layer
 
+    def hidden_layer_predict(self, input: torch.Tensor) -> torch.Tensor:
+        return self.sigmoid(self.dropout(self.hidden(input)))
+
 
 class Classifier:
     def __init__(
