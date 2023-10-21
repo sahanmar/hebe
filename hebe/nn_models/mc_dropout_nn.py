@@ -1,11 +1,7 @@
 import torch
 
-from hebe.config import (
-    AcquisitionFunctions,
-    ActiveLearningConfig,
-    MCDropoutConfig,
-    NNParametersConfig,
-)
+from hebe.config import (AcquisitionFunctions, ActiveLearningConfig,
+                         MCDropoutConfig, NNParametersConfig)
 from hebe.nn_models.feed_forward_nn import Classifier
 
 
@@ -53,21 +49,39 @@ class MCDropoutClassifier(Classifier):
             self.active_learning_config.acquisition_function
             is AcquisitionFunctions.random
         ):
-            predictions = input_data
-        else:
-            predictions = torch.stack(
-                [
-                    self.predict_inner(input_data, True)
-                    for i in range(self.mc_dropout_config.number_of_samples)
-                ],
-                dim=1,
-            )
-            mean_predictions = torch.mean(predictions, dim=1)
-            predictions = mean_predictions / mean_predictions.sum(
-                dim=1, keepdim=True
+            return self.acquisition_funtion(
+                input,
+                num_of_instances_to_sample or self.num_of_instances_to_sample,
             )
 
-        return self.acquisition_funtion(
-            predictions,
-            num_of_instances_to_sample or self.num_of_instances_to_sample,
+        predictions = torch.stack(
+            [
+                self.predict_inner(input_data, True)
+                for i in range(self.mc_dropout_config.number_of_samples)
+            ],
+            dim=1,
         )
+        mean_predictions = torch.mean(predictions, dim=1)
+        predictions = mean_predictions / mean_predictions.sum(
+            dim=1, keepdim=True
+        )
+
+        if (
+            self.active_learning_config.acquisition_function
+            is AcquisitionFunctions.entropy
+        ):
+            return self.acquisition_funtion(
+                predictions,
+                num_of_instances_to_sample or self.num_of_instances_to_sample,
+            )
+        elif (
+            self.active_learning_config.acquisition_function
+            is AcquisitionFunctions.hac_entropy
+        ):
+            return self.acquisition_funtion(
+                predictions,
+                input_data,
+                num_of_instances_to_sample or self.num_of_instances_to_sample,
+            )
+
+        raise ValueError("Acquisition function is not specified...")

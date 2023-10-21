@@ -7,13 +7,9 @@ import torch
 from torch.utils.data import DataLoader, TensorDataset
 
 from hebe.config import Dateset, SimulationConfig, TrainingType
-from hebe.datasets_utils import (
-    create_chess_deck_data,
-    create_moons_data,
-    extend_training_data,
-    plot_data_uncertainty_grid,
-    simulate_grid,
-)
+from hebe.datasets_utils import (create_chess_deck_data, create_moons_data,
+                                 extend_training_data,
+                                 plot_data_uncertainty_grid, simulate_grid)
 from hebe.metrics import calculate_roc_auc
 from hebe.nn_models import Classifier
 from paths import DATA
