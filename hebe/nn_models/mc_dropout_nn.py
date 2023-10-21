@@ -49,7 +49,10 @@ class MCDropoutClassifier(Classifier):
         Returns sampled instances indices in the original dataset
         """
 
-        if self.acquisition_funtion is AcquisitionFunctions.random:
+        if (
+            self.active_learning_config.acquisition_function
+            is AcquisitionFunctions.random
+        ):
             predictions = input_data
         else:
             predictions = torch.stack(

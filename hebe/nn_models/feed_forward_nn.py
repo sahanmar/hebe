@@ -66,11 +66,12 @@ class Classifier:
         self.dropout_ratio = nn_config.dropout
         self.learning_rate = nn_config.learning_rate
         self.training_epochs = nn_config.training_epochs
+        self.active_learning_config = active_learning_config
         self.num_of_instances_to_sample = (
-            active_learning_config.num_of_instances_to_sample
+            self.active_learning_config.num_of_instances_to_sample
         )
         self.acquisition_funtion = ACQUISITION_FUNCTIONS_MAP[
-            active_learning_config.acquisition_function
+            self.active_learning_config.acquisition_function
         ]
 
         self.model: FeedForwardNN = FeedForwardNN(
@@ -126,7 +127,10 @@ class Classifier:
         Returns sampled instances indices in the original dataset
         """
 
-        if self.acquisition_funtion is AcquisitionFunctions.random:
+        if (
+            self.active_learning_config.acquisition_function
+            is AcquisitionFunctions.random
+        ):
             predictions = input_data
         else:
             predictions = self.predict(input_data)

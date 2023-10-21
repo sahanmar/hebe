@@ -15,7 +15,7 @@ def create_moons_data() -> (
     X, Y = make_moons(noise=0.2, random_state=0, n_samples=1000)
     X = scale(X)
 
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.95)
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.99)
 
     X_train = torch.tensor(X_train, dtype=torch.float32)
     Y_train = torch.tensor(Y_train, dtype=torch.float32).view(-1, 1)
@@ -77,7 +77,7 @@ def create_chess_deck_data() -> (
         axis=0,
     )
 
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.95)
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.99)
 
     X_train = torch.tensor(X_train, dtype=torch.float32)
     Y_train = torch.tensor(Y_train, dtype=torch.float32).view(-1, 1)
