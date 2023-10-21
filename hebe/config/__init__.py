@@ -4,6 +4,7 @@ from hebe.config.config import (
     ActiveLearningConfig,
     Config,
     Dateset,
+    EnsemblesConfig,
     MCDropoutConfig,
     NNParametersConfig,
     SimulationConfig,

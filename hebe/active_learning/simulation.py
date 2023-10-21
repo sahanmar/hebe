@@ -62,7 +62,7 @@ def create_train_dataloader(
     return DataLoader(train_dataset, batch_size=batch_size)
 
 
-def active_learning_moon_simulation(
+def active_learning_simulation(
     simulation_config: SimulationConfig,
     model: Classifier,
 ) -> None:

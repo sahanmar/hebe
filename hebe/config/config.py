@@ -34,13 +34,18 @@ class VadamConfig:
     std: float = 0.1
 
 
+@dataclass
+class EnsemblesConfig:
+    number_of_samples: int = 10
+
+
 @dataclass(frozen=True)
 class NNParametersConfig:
     input_size: int = 2
     hidden_size: int = 150
     dropout: float = 0.5
     learning_rate: float = 0.001
-    training_epochs: int = 5000
+    training_epochs: int = 2000
 
 
 @dataclass(frozen=True)
@@ -64,3 +69,4 @@ class Config:
     simulation: SimulationConfig = SimulationConfig()
     mc_dropout: MCDropoutConfig = MCDropoutConfig()
     vadam: VadamConfig = VadamConfig()
+    ensembles: EnsemblesConfig = EnsemblesConfig()
