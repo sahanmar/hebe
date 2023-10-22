@@ -1,10 +1,13 @@
 import torch
 from torch.utils.data import DataLoader
 
-from hebe.config import (AcquisitionFunctions, ActiveLearningConfig,
-                         EnsemblesConfig, NNParametersConfig)
-from hebe.nn_models.feed_forward_nn import (ACQUISITION_FUNCTIONS_MAP,
-                                            Classifier)
+from hebe.config import (
+    AcquisitionFunctions,
+    ActiveLearningConfig,
+    EnsemblesConfig,
+    NNParametersConfig,
+)
+from hebe.nn_models.feed_forward_nn import ACQUISITION_FUNCTIONS_MAP, Classifier
 
 
 class EnsemblesClassifier:

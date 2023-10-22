@@ -3,8 +3,11 @@ import torch
 from sklearn.mixture import GaussianMixture
 from torch.utils.data import DataLoader
 
-from hebe.config import (AcquisitionFunctions, ActiveLearningConfig,
-                         NNParametersConfig)
+from hebe.config import (
+    AcquisitionFunctions,
+    ActiveLearningConfig,
+    NNParametersConfig,
+)
 from hebe.nn_models.feed_forward_nn import Classifier
 
 

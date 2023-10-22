@@ -5,11 +5,16 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-from hebe.acquisitions_functions import (hac_sampling,
-                                         maximal_entropy_sampling,
-                                         random_indices_sampling)
-from hebe.config import (AcquisitionFunctions, ActiveLearningConfig,
-                         NNParametersConfig)
+from hebe.acquisitions_functions import (
+    hac_sampling,
+    maximal_entropy_sampling,
+    random_indices_sampling,
+)
+from hebe.config import (
+    AcquisitionFunctions,
+    ActiveLearningConfig,
+    NNParametersConfig,
+)
 
 ACQUISITION_FUNCTIONS_MAP: dict[
     AcquisitionFunctions, Callable[..., torch.Tensor]

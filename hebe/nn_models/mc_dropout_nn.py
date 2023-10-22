@@ -1,7 +1,11 @@
 import torch
 
-from hebe.config import (AcquisitionFunctions, ActiveLearningConfig,
-                         MCDropoutConfig, NNParametersConfig)
+from hebe.config import (
+    AcquisitionFunctions,
+    ActiveLearningConfig,
+    MCDropoutConfig,
+    NNParametersConfig,
+)
 from hebe.nn_models.feed_forward_nn import Classifier
 
 
