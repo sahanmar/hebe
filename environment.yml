@@ -24,4 +24,5 @@ dependencies:
       - mypy
       - pyproject-flake8==5.0.4
       - isort
+      - pytest
 

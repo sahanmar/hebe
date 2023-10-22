@@ -84,13 +84,23 @@ class DeepDeterministicUncertainty(Classifier):
                 )
 
         if self.acquisition_funtion is AcquisitionFunctions.random:
-            predictions = input_data
-        else:
-            predictions = self.predict(get_gmm_predictions(input_data))
-
-        if num_of_instances_to_sample is None:
             return self.acquisition_funtion(
-                predictions, self.num_of_instances_to_sample
+                input_data,
+                num_of_instances_to_sample or self.num_of_instances_to_sample,
             )
 
-        return self.acquisition_funtion(predictions, num_of_instances_to_sample)
+        predictions = self.predict(get_gmm_predictions(input_data))
+
+        if self.acquisition_funtion is AcquisitionFunctions.entropy:
+            return self.acquisition_funtion(
+                predictions,
+                num_of_instances_to_sample or self.num_of_instances_to_sample,
+            )
+        elif self.acquisition_funtion is AcquisitionFunctions.hac_entropy:
+            return self.acquisition_funtion(
+                predictions,
+                input_data,
+                num_of_instances_to_sample or self.num_of_instances_to_sample,
+            )
+
+        raise ValueError("Acquisition function is not specified...")

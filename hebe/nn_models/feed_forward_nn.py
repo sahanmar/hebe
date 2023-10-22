@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Callable, Optional
 
 import numpy as np
 import torch
@@ -6,6 +6,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from hebe.acquisitions_functions import (
+    hac_sampling,
     maximal_entropy_sampling,
     random_indices_sampling,
 )
@@ -15,9 +16,12 @@ from hebe.config import (
     NNParametersConfig,
 )
 
-ACQUISITION_FUNCTIONS_MAP = {
+ACQUISITION_FUNCTIONS_MAP: dict[
+    AcquisitionFunctions, Callable[..., torch.Tensor]
+] = {
     AcquisitionFunctions.random: random_indices_sampling,
     AcquisitionFunctions.entropy: maximal_entropy_sampling,
+    AcquisitionFunctions.hac_entropy: hac_sampling,
 }
 
 
@@ -131,15 +135,32 @@ class Classifier:
             self.active_learning_config.acquisition_function
             is AcquisitionFunctions.random
         ):
-            predictions = input_data
-        else:
-            predictions = self.predict(input_data)
-
-        if num_of_instances_to_sample is None:
             return self.acquisition_funtion(
-                predictions, self.num_of_instances_to_sample
+                input_data,
+                num_of_instances_to_sample or self.num_of_instances_to_sample,
             )
-        return self.acquisition_funtion(predictions, num_of_instances_to_sample)
+
+        predictions = self.predict(input_data)
+
+        if (
+            self.active_learning_config.acquisition_function
+            is AcquisitionFunctions.entropy
+        ):
+            return self.acquisition_funtion(
+                predictions,
+                num_of_instances_to_sample or self.num_of_instances_to_sample,
+            )
+        elif (
+            self.active_learning_config.acquisition_function
+            is AcquisitionFunctions.hac_entropy
+        ):
+            return self.acquisition_funtion(
+                predictions,
+                input_data,
+                num_of_instances_to_sample or self.num_of_instances_to_sample,
+            )
+
+        raise ValueError("Acquisition function is not specified...")
 
     def reset_cold_start(self) -> None:
         """

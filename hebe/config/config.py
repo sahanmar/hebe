@@ -6,6 +6,7 @@ from typing import Tuple
 class AcquisitionFunctions(Enum):
     random = "random"
     entropy = "entropy"
+    hac_entropy = "hac_entropy"
 
 
 class TrainingType(Enum):
@@ -51,7 +52,9 @@ class NNParametersConfig:
 @dataclass(frozen=True)
 class ActiveLearningConfig:
     num_of_instances_to_sample: int = 20
-    acquisition_function: AcquisitionFunctions = AcquisitionFunctions.entropy
+    acquisition_function: AcquisitionFunctions = (
+        AcquisitionFunctions.hac_entropy
+    )
 
 
 @dataclass(frozen=True)

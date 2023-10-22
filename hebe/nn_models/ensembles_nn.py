@@ -46,21 +46,43 @@ class EnsemblesClassifier:
         Returns sampled instances indices in the original dataset
         """
 
+        acq_func = ACQUISITION_FUNCTIONS_MAP[
+            self.active_learning_config.acquisition_function
+        ]
+
         if (
             self.active_learning_config.acquisition_function
             is AcquisitionFunctions.random
         ):
-            predictions = input_data
-        else:
-            predictions = self.predict(input_data)
+            acq_func(
+                input_data,
+                num_of_instances_to_sample
+                or self.active_learning_config.num_of_instances_to_sample,
+            )
 
-        return ACQUISITION_FUNCTIONS_MAP[
+        predictions = self.predict(input_data)
+
+        if (
             self.active_learning_config.acquisition_function
-        ](
-            predictions,
-            num_of_instances_to_sample
-            or self.active_learning_config.num_of_instances_to_sample,
-        )
+            is AcquisitionFunctions.entropy
+        ):
+            return acq_func(
+                predictions,
+                num_of_instances_to_sample
+                or self.active_learning_config.num_of_instances_to_sample,
+            )
+        elif (
+            self.active_learning_config.acquisition_function
+            is AcquisitionFunctions.hac_entropy
+        ):
+            return acq_func(
+                predictions,
+                input_data,
+                num_of_instances_to_sample
+                or self.active_learning_config.num_of_instances_to_sample,
+            )
+
+        raise ValueError("Acquisition function is not specified...")
 
     def reset_cold_start(self) -> None:
         """
