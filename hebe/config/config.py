@@ -52,9 +52,7 @@ class NNParametersConfig:
 @dataclass(frozen=True)
 class ActiveLearningConfig:
     num_of_instances_to_sample: int = 20
-    acquisition_function: AcquisitionFunctions = (
-        AcquisitionFunctions.hac_entropy
-    )
+    acquisition_function: AcquisitionFunctions = AcquisitionFunctions.entropy
 
 
 @dataclass(frozen=True)

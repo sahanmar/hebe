@@ -78,7 +78,7 @@ def hac_sampling(
     data_sanity_check(num_of_instances_to_sample, predictions)
 
     high_entropy_values = maximal_entropy_sampling(
-        predictions, 10 * num_of_instances_to_sample
+        predictions, 5 * num_of_instances_to_sample
     ).tolist()
 
     model = AgglomerativeClustering(linkage="average").fit(instances.cpu())
