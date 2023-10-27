@@ -130,6 +130,7 @@ def extend_training_data(
 
 def plot_data_uncertainty_grid(
     predictions: torch.Tensor,
+    sampled_data: torch.Tensor,
     grid: np.ndarray,
     x_train: torch.Tensor,
     y_train: torch.Tensor,
@@ -156,6 +157,13 @@ def plot_data_uncertainty_grid(
     class_2 = (y == 1).squeeze(1)
     ax.scatter(x[class_1, 0], x[class_1, 1])
     ax.scatter(x[class_2, 0], x[class_2, 1], color="r")
+    ax.scatter(
+        x_test[sampled_data.cpu().numpy()][:, 0],
+        x_test[sampled_data.cpu().numpy()][:, 1],
+        marker="*",
+        color="k",
+        s=100,
+    )
 
     # Add a colorbar
     cbar = plt.colorbar(contour, ax=ax)

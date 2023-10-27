@@ -83,7 +83,10 @@ class DeepDeterministicUncertainty(Classifier):
                     dim=1,
                 )
 
-        if self.acquisition_funtion is AcquisitionFunctions.random:
+        if (
+            self.active_learning_config.acquisition_function
+            is AcquisitionFunctions.random
+        ):
             return self.acquisition_funtion(
                 input_data,
                 num_of_instances_to_sample or self.num_of_instances_to_sample,
@@ -91,12 +94,18 @@ class DeepDeterministicUncertainty(Classifier):
 
         predictions = self.predict(get_gmm_predictions(input_data))
 
-        if self.acquisition_funtion is AcquisitionFunctions.entropy:
+        if (
+            self.active_learning_config.acquisition_function
+            is AcquisitionFunctions.entropy
+        ):
             return self.acquisition_funtion(
                 predictions,
                 num_of_instances_to_sample or self.num_of_instances_to_sample,
             )
-        elif self.acquisition_funtion is AcquisitionFunctions.hac_entropy:
+        elif (
+            self.active_learning_config.acquisition_function
+            is AcquisitionFunctions.hac_entropy
+        ):
             return self.acquisition_funtion(
                 predictions,
                 input_data,

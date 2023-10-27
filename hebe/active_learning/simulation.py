@@ -4,6 +4,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from paths import DATA
 from torch.utils.data import DataLoader, TensorDataset
 
 from hebe.config import Dateset, SimulationConfig, TrainingType
@@ -16,7 +17,6 @@ from hebe.datasets_utils import (
 )
 from hebe.metrics import calculate_roc_auc
 from hebe.nn_models import Classifier
-from paths import DATA
 
 
 def log_simulation_data(
@@ -85,12 +85,19 @@ def active_learning_simulation(
             test_predictions = model.predict(x_test)
             auc = calculate_roc_auc(test_predictions, y_test)
             loop_auc_values.append(auc)
+            # perform new data sampling
+            samped_indices = model.sample_indices_from_unlabeled_data(x_test)
             # visualise
             plot_data_uncertainty_grid(
-                predictions, grid, x_train, y_train, x_test, y_test
+                predictions,
+                samped_indices,
+                grid,
+                x_train,
+                y_train,
+                x_test,
+                y_test,
             )
-            # perform new data sampling with a training data change
-            samped_indices = model.sample_indices_from_unlabeled_data(x_test)
+            # training data change
             (x_train, y_train, x_test, y_test) = extend_training_data(
                 x_train,
                 y_train,
