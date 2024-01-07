@@ -21,6 +21,14 @@ class Dateset(Enum):
 
 
 @dataclass(frozen=True)
+class VAEConfig:
+    in_features: int = 3 * 10 + 4
+    out_features: int = 3
+    mu_out: int = 1
+    sigma_out: int = 1
+
+
+@dataclass(frozen=True)
 class MCDropoutConfig:
     use_uncertainty_in_prediction: bool = False
     number_of_samples: int = 10

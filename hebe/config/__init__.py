@@ -10,4 +10,5 @@ from hebe.config.config import (
     SimulationConfig,
     TrainingType,
     VadamConfig,
+    VAEConfig,
 )
