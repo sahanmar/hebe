@@ -1,41 +1,42 @@
-import math
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
 
 from torch.distributions import Normal
 from hebe.nn_models.feed_forward_nn import FeedForwardNN
-from hebe.config import ActiveLearningConfig, NNParametersConfig, VAEConfig
-
-
-def kl_div(mu: torch.Tensor, sigma: torch.Tensor) -> torch.Tensor:
-    """
-    Function that computes variation autoencoder KL divergence
-
-    mu and sigma are the same size
-    """
-
-    return -0.5 * torch.sum(
-        1 + torch.log(sigma.pow(2)) - mu.pow(2) - sigma.pow(2)
-    )
-
+from hebe.config import (
+    ActiveLearningConfig,
+    NNParametersConfig,
+    VAEConfig,
+    AcquisitionFunctions,
+)
+from torch.utils.data import DataLoader
+from typing import Tuple
+from itertools import chain
+from hebe.nn_models.utils import ModelType
+from hebe.nn_models.feed_forward_nn import ACQUISITION_FUNCTIONS_MAP
 
 # Semi-supervised Encoder
 
 
 class Encoder(nn.Module):
-    def __init__(self, vae_config: VAEConfig):
+    def __init__(self, vae_config: VAEConfig) -> None:
         """
         Encoder for semi-supervised VAE
         """
         super(Encoder, self).__init__()
 
-        self.mu = nn.Linear(vae_config.in_features, vae_config.out_features)
-        self.rho = nn.Linear(vae_config.in_features, vae_config.out_features)
+        self.mu = nn.Linear(
+            vae_config.encoder_in_features, vae_config.encoder_out_features
+        )
+        self.rho = nn.Linear(
+            vae_config.encoder_in_features, vae_config.encoder_out_features
+        )
         self.softplus = nn.Softplus()
 
-    def forward(self, x, y):
+    def forward(
+        self, x: torch.Tensor, y: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         xy = torch.cat((x, y), dim=-1)
         mu = self.mu(xy)
         sigma = self.softplus(self.rho(xy)) + 1e-10  # improves stability
@@ -47,39 +48,39 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, vae_config: VAEConfig):
+    def __init__(self, vae_config: VAEConfig) -> None:
         """
         Decoder for semi-supervised VAE
         """
         super(Decoder, self).__init__()
         self.mu = nn.Linear(
-            in_features=vae_config.in_features, out_features=vae_config.mu_out
+            in_features=vae_config.decoder_in_features,
+            out_features=vae_config.decoder_out_features,
         )
         self.rho = nn.Linear(
-            in_features=vae_config.in_features,
-            out_features=vae_config.sigma_out,
+            in_features=vae_config.decoder_in_features,
+            out_features=vae_config.decoder_out_features,
         )
         self.softplus = nn.Softplus()
 
-    def forward(self, x, y):
+    def forward(
+        self, x: torch.Tensor, y: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         xy = torch.cat((x, y), dim=-1)
         mu = self.mu(xy)
-        sigma = self.softplus(self.rho(xy)) + 1e-10  # improves stability
+        sigma = self.softplus(self.rho(xy)) + 1e-4  # improves stability
         return mu, sigma
 
 
 # Semi-supervised Variational Autoencoder
 
 
-class SSVAE(nn.Module):
+class Model:
     def __init__(
         self,
-        nn_config: NNParametersConfig,
-        active_learning_config: ActiveLearningConfig,
         vae_config: VAEConfig,
+        nn_config: NNParametersConfig,
     ):
-        super(SSVAE, self).__init__()
-
         self.vae_config = vae_config
         self.nn_config = nn_config
 
@@ -95,102 +96,184 @@ class SSVAE(nn.Module):
             self.nn_config.dropout,
         )
 
-        # active learning setup
+
+class SSVAE:
+    def __init__(
+        self,
+        nn_config: NNParametersConfig,
+        active_learning_config: ActiveLearningConfig,
+        vae_config: VAEConfig,
+    ):
+        self.type = ModelType.SSVAE
+        self.vae_config = vae_config
+        self.nn_config = nn_config
+        self.learning_rate = nn_config.learning_rate
+        self.training_epochs = nn_config.training_epochs
+
+        self.model = Model(self.vae_config, self.nn_config)
+
+        # active learning
         self.active_learning_config = active_learning_config
         self.num_of_instances_to_sample = (
             self.active_learning_config.num_of_instances_to_sample
         )
+        self.acquisition_funtion = ACQUISITION_FUNCTIONS_MAP[
+            self.active_learning_config.acquisition_function
+        ]
 
-        # TODO add this to config
-        self.num_labels = 2
-        self.batch_size = 1
-        self.dataset_size = 1000
+        self.optimizer: torch.optim.Optimizer = torch.optim.Adam(
+            chain(
+                self.model.encoder.parameters(),
+                self.model.decoder.parameters(),
+                self.model.classifier.parameters(),
+            ),
+            self.learning_rate,
+        )
+        self.clf_criterion: nn.BCELoss = nn.BCELoss()
+        self.num_labels = self.nn_config.num_labels
 
-    def likelihood(
+    def elbo_xy(
         self,
         x: torch.Tensor,
         y: torch.Tensor,
-        mu_x: torch.Tensor,
-        sigma_x: torch.Tensor,
-        mu_z: torch.Tensor,
-        sigma_z: torch.Tensor,
     ) -> torch.Tensor:
-        # uniform prior
-        prior_y = 1 / 2 * torch.ones(x.size(dim=0))
-        logpy = F.nll_loss(prior_y, y)
-
+        # log uniform prior
+        logpy = torch.log(1 / self.num_labels * torch.ones(x.size(dim=0)))
+        # kld
+        z_l, mu_z, sigma_z = self.model.encoder(x, y)
         kld_z = -0.5 * torch.mean(
             torch.sum(
-                1 + torch.log(sigma_z.pow(2)) - mu_z.pow(2) - sigma_z.pow(2),
-                axis=1,
+                input=(
+                    1 + torch.log(sigma_z.pow(2)) - mu_z.pow(2) - sigma_z.pow(2)
+                ),
+                dim=1,
             )
+            * torch.ones(x.size(dim=0))
         )
+        # likelihood
+        mu_x, sigma_x = self.model.decoder(z_l, y)
+        logpx = torch.sum(Normal(mu_x, scale=sigma_x).log_prob(x), dim=-1)
 
-        logpx = Normal(mu_x, scale=sigma_x).log_prob(x)
-        likelihood = logpx + logpy - kld_z
-        return likelihood
+        return logpx - kld_z + logpy
 
-    # def prior_likelihood(self):
-    #     likelihood = 0
-    #     vars = self.trainable_vars()
-    #     for var in vars:
-    #         likelihood += tf.reduce_sum(logpdf.std_gaussian(var))
-    #     return likelihood
+    def elbo_x(self, x: torch.Tensor) -> torch.Tensor:
+        y_pred = self.model.classifier(x)
+        y_pred = torch.cat([1 - y_pred, y_pred], dim=1)
+        likelihoods = []
+        for i in range(self.num_labels):
+            y = i * torch.ones(x.size(dim=0), 1).to(torch.int64)
+            likelihoods.append(self.elbo_xy(x, y))
 
-    def forward(self, x: torch.Tensor, y: torch.Tensor | None) -> torch.Tensor:
-        alpha = 0.1 * self.batch_size
+        likelihood = torch.stack(likelihoods, dim=1)
+        likelihood = torch.sum(
+            y_pred * likelihood - y_pred * torch.log(y_pred), dim=1
+        )
+        return torch.mean(likelihood, dim=0)
 
-        # Classification
-        y_pred = self.classifier(x)
+    def predict(self, input_data: torch.Tensor) -> torch.Tensor:
+        # Set the model to evaluation mode (important for dropout)
+        self.model.classifier.eval()
 
-        if y:
-            self.loss_clf = torch.sum(
-                F.nll_loss(y_pred, labels=self.y, reduce=False), dim=0
-            )  # <- must be a scalar!
+        # Forward pass to get predictions
+        with torch.no_grad():
+            predictions = self.model.classifier(input_data)
 
-            ##### Labeled Data Encoder Decoder #####
+        return predictions
 
-            z_l, mu_z_l, sigma_z_l = self.encoder(self.x, self.y)
-            mu_x_l, sigma_x_l = self.decoder(z_l, y)
-
-            # loss of labelled data, refered as L(x, y)
-            likelihood_l = self.likelihood(
-                x, y, mu_x_l, sigma_x_l, mu_z_l, sigma_z_l
-            )
-
-            self.loss_l = -torch.sum(likelihood_l, dim=0)
-
-            self.loss = (self.loss_l + alpha * self.loss_clf) / self.batch_size
-
+    def criterion(
+        self, data: torch.Tensor | tuple[torch.Tensor, torch.Tensor], alpha=1
+    ) -> torch.Tensor:
+        if len(data) > 1:
+            x, y = data
+            l_xy = self.elbo_xy(x, y)
+            clf_loss = self.clf_criterion(self.model.classifier(x), y)
+            loss = -torch.mean(l_xy) + alpha * clf_loss
         else:
-            ##### Unlabled Data Encoder Decoder #####
+            x = data[0]
+            loss = -self.elbo_x(x)
+        return loss
 
-            likelihood_u_list = []
-            for i in range(self.num_labels):
-                y_us = i * torch.ones(x.size(dim=0))
-                y_us = F.one_hot(y_us, num_classes=self.num_labels)
+    def train_one_epoch(
+        self, labaled_dataloader: DataLoader, unlabaled_dataloader: DataLoader
+    ) -> list[float]:
+        losses: list[float] = []
+        for data in chain(labaled_dataloader, unlabaled_dataloader):
+            loss = self.criterion(data)
+            self.optimizer.zero_grad()
+            loss.backward()
+            self.optimizer.step()
 
-                z_u, mu_z_u, sigma_z_u = self.encoder(self.x, y_us)
-                mu_x_u, sigma_x_u = self.decoder(z_u, y_us, reuse=True)
+            losses.append(loss.detach().item())
 
-                _likelihood_u = self.likelihood(
-                    x, y_us, mu_x_u, sigma_x_u, mu_z_u, sigma_z_u
-                )
-                likelihood_u_list.append(_likelihood_u)
+        return losses
 
-            likelihood_u = torch.stack(likelihood_u_list, dim=1)
+    def train(
+        self, labaled_dataloader: DataLoader, unlabaled_dataloader: DataLoader
+    ) -> None:
+        avg_loss_per_epoch: list[float] = []
+        for _ in range(self.training_epochs):
+            losses = self.train_one_epoch(
+                labaled_dataloader, unlabaled_dataloader
+            )
+            avg_loss_per_epoch.append(np.mean(losses))
 
-            # add the H(q(y|x))
-            likelihood_u = torch.sum(
-                y_pred * likelihood_u - y_pred * torch.log(y_pred), dim=1
+        print(f"First loss: {avg_loss_per_epoch[0]}")
+        print(f"Last loss: {avg_loss_per_epoch[-1]}")
+
+    def sample_indices_from_unlabeled_data(
+        self,
+        input_data: torch.Tensor,
+        num_of_instances_to_sample: int | None = None,
+    ) -> torch.Tensor:
+        """
+        Returns sampled instances indices in the original dataset
+        """
+
+        if (
+            self.active_learning_config.acquisition_function
+            is AcquisitionFunctions.random
+        ):
+            return self.acquisition_funtion(
+                input_data,
+                num_of_instances_to_sample or self.num_of_instances_to_sample,
             )
 
-            self.loss_u = -torch.sum(likelihood_u, dim=0)
+        predictions = self.predict(input_data)
 
-            self.loss = self.loss_u / self.batch_size
+        if (
+            self.active_learning_config.acquisition_function
+            is AcquisitionFunctions.entropy
+        ):
+            return self.acquisition_funtion(
+                predictions,
+                num_of_instances_to_sample or self.num_of_instances_to_sample,
+            )
+        elif (
+            self.active_learning_config.acquisition_function
+            is AcquisitionFunctions.hac_entropy
+        ):
+            return self.acquisition_funtion(
+                predictions,
+                input_data,
+                num_of_instances_to_sample or self.num_of_instances_to_sample,
+            )
 
-        prior_weight = 1.0 / (self.dataset_size)
-        # self.loss_prior = -self.prior_likelihood() <- Finished here
-        # self.loss += prior_weight * self.loss_prior
+        raise ValueError("Acquisition function is not specified...")
 
-        return torch.argmax(y_pred, 1)
+    def reset_cold_start(self) -> None:
+        """
+        Parameters random reinitialization.
+        """
+        del self.model
+        del self.optimizer
+
+        self.model = Model(self.vae_config, self.nn_config)  # type: ignore
+
+        self.optimizer: torch.optim.Optimizer = torch.optim.Adam(  # type: ignore
+            chain(
+                self.model.encoder.parameters(),
+                self.model.decoder.parameters(),
+                self.model.classifier.parameters(),
+            ),
+            self.learning_rate,
+        )

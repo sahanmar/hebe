@@ -7,6 +7,7 @@ from hebe.config import (
     NNParametersConfig,
 )
 from hebe.nn_models.feed_forward_nn import Classifier
+from hebe.nn_models.utils import ModelType
 
 
 class MCDropoutClassifier(Classifier):
@@ -19,6 +20,7 @@ class MCDropoutClassifier(Classifier):
         super().__init__(nn_config, active_learning_config)
 
         self.mc_dropout_config = mc_dropout_config
+        self.type = ModelType.MC_DROPOUT
 
     def predict_inner(
         self, input_data: torch.Tensor, use_uncertainty_in_prediction: bool

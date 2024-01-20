@@ -9,6 +9,7 @@ from hebe.config import (
     NNParametersConfig,
 )
 from hebe.nn_models.feed_forward_nn import Classifier
+from hebe.nn_models.utils import ModelType
 
 
 class DeepDeterministicUncertainty(Classifier):
@@ -19,6 +20,7 @@ class DeepDeterministicUncertainty(Classifier):
     ):
         super().__init__(nn_config, active_learning_config)
 
+        self.type = ModelType.DEEP_DETERMINISTIC_UNCERTAINTY
         self.gmm_0: GaussianMixture | None = None
         self.gmm_1: GaussianMixture | None = None
 

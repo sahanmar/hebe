@@ -8,6 +8,7 @@ from hebe.config import (
     NNParametersConfig,
 )
 from hebe.nn_models.feed_forward_nn import ACQUISITION_FUNCTIONS_MAP, Classifier
+from hebe.nn_models.utils import ModelType
 
 
 class EnsemblesClassifier:
@@ -17,6 +18,7 @@ class EnsemblesClassifier:
         active_learning_config: ActiveLearningConfig,
         ensembles_config: EnsemblesConfig,
     ):
+        self.type = ModelType.ENSEMBLES
         self.ensembles_config = ensembles_config
         self.nn_config = nn_config
         self.active_learning_config = active_learning_config

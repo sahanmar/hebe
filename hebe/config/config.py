@@ -22,10 +22,10 @@ class Dateset(Enum):
 
 @dataclass(frozen=True)
 class VAEConfig:
-    in_features: int = 3 * 10 + 4
-    out_features: int = 3
-    mu_out: int = 1
-    sigma_out: int = 1
+    encoder_in_features: int = 3
+    encoder_out_features: int = 2
+    decoder_in_features: int = 3
+    decoder_out_features: int = 2
 
 
 @dataclass(frozen=True)
@@ -55,6 +55,7 @@ class NNParametersConfig:
     dropout: float = 0.5
     learning_rate: float = 0.001
     training_epochs: int = 2000
+    num_labels = 2
 
 
 @dataclass(frozen=True)
@@ -79,3 +80,4 @@ class Config:
     mc_dropout: MCDropoutConfig = MCDropoutConfig()
     vadam: VadamConfig = VadamConfig()
     ensembles: EnsemblesConfig = EnsemblesConfig()
+    vae: VAEConfig = VAEConfig()
