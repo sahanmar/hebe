@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 from hebe.config import ActiveLearningConfig, NNParametersConfig, VadamConfig
 from hebe.nn_models.feed_forward_nn import Classifier, FeedForwardNN
 from hebe.nn_models.vadam.vadam_optimizer import Vadam
+from hebe.nn_models.utils import ModelType
 
 
 class VadamClassifier(Classifier):
@@ -16,6 +17,7 @@ class VadamClassifier(Classifier):
     ):
         super().__init__(nn_config, active_learning_config)
 
+        self.type = ModelType.VADAM
         self.vadam_config: VadamConfig = vadam_config
         self.switch_optimizer: bool = False
         self.training_set_size: int | None = None

@@ -21,6 +21,14 @@ class Dateset(Enum):
 
 
 @dataclass(frozen=True)
+class VAEConfig:
+    encoder_in_features: int = 3
+    encoder_out_features: int = 2
+    decoder_in_features: int = 3
+    decoder_out_features: int = 2
+
+
+@dataclass(frozen=True)
 class MCDropoutConfig:
     use_uncertainty_in_prediction: bool = False
     number_of_samples: int = 10
@@ -47,6 +55,7 @@ class NNParametersConfig:
     dropout: float = 0.5
     learning_rate: float = 0.001
     training_epochs: int = 2000
+    num_labels = 2
 
 
 @dataclass(frozen=True)
@@ -71,3 +80,4 @@ class Config:
     mc_dropout: MCDropoutConfig = MCDropoutConfig()
     vadam: VadamConfig = VadamConfig()
     ensembles: EnsemblesConfig = EnsemblesConfig()
+    vae: VAEConfig = VAEConfig()

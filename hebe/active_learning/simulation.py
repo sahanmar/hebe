@@ -16,7 +16,8 @@ from hebe.datasets_utils import (
     simulate_grid,
 )
 from hebe.metrics import calculate_roc_auc
-from hebe.nn_models import Classifier
+from hebe.nn_models import Classifier, SSVAE
+from hebe.nn_models.utils import ModelType
 
 
 def log_simulation_data(
@@ -50,7 +51,9 @@ def plot_auc(auc_history: list[list[float]]) -> None:
 
 
 def create_train_dataloader(
-    x_train: torch.Tensor, y_train: torch.Tensor, batch_size: int | None = None
+    x_train: torch.Tensor,
+    y_train: torch.Tensor | None = None,
+    batch_size: int | None = None,
 ) -> DataLoader:
     """
     x_train - training instances
@@ -58,13 +61,17 @@ def create_train_dataloader(
     """
     if not batch_size:
         batch_size = len(x_train)
-    train_dataset = TensorDataset(x_train, y_train)
+    train_dataset = (
+        TensorDataset(x_train, y_train)
+        if y_train is not None
+        else TensorDataset(x_train)
+    )
     return DataLoader(train_dataset, batch_size=batch_size)
 
 
 def active_learning_simulation(
     simulation_config: SimulationConfig,
-    model: Classifier,
+    model: Classifier | SSVAE,
 ) -> None:
     auc_history = []
 
@@ -78,9 +85,15 @@ def active_learning_simulation(
         loop_auc_values = []
         for iter in range(simulation_config.iterations):
             # create training data structure
-            train_dataloader = create_train_dataloader(x_train, y_train)
-            # train and predict on visualisation data
-            model.train(train_dataloader)
+            if model.type == ModelType.SSVAE:
+                labaled_dataloader = create_train_dataloader(x_train, y_train)
+                unlabaled_dataloader = create_train_dataloader(x_test)
+                # train and predict on visualisation data
+                model.train(labaled_dataloader, unlabaled_dataloader)  # type: ignore
+            else:
+                train_dataloader = create_train_dataloader(x_train, y_train)
+                # train and predict on visualisation data
+                model.train(train_dataloader)  # type: ignore
             predictions = model.predict(nn_input_grid)
             test_predictions = model.predict(x_test)
             auc = calculate_roc_auc(test_predictions, y_test)

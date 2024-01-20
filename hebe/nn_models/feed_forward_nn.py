@@ -15,6 +15,7 @@ from hebe.config import (
     ActiveLearningConfig,
     NNParametersConfig,
 )
+from hebe.nn_models.utils import ModelType
 
 ACQUISITION_FUNCTIONS_MAP: dict[
     AcquisitionFunctions, Callable[..., torch.Tensor]
@@ -64,12 +65,14 @@ class Classifier:
         nn_config: NNParametersConfig,
         active_learning_config: ActiveLearningConfig,
     ):
+        self.type = ModelType.FEED_FORWARD_NN
         self.input_size = nn_config.input_size
         self.hidden_size = nn_config.hidden_size
         self.num_classes = 1
         self.dropout_ratio = nn_config.dropout
         self.learning_rate = nn_config.learning_rate
         self.training_epochs = nn_config.training_epochs
+
         self.active_learning_config = active_learning_config
         self.num_of_instances_to_sample = (
             self.active_learning_config.num_of_instances_to_sample
